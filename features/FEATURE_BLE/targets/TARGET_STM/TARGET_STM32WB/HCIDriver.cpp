@@ -788,9 +788,114 @@ static bool acl_data_wait(void)
     }
 }
 
-/*  WEAK callbacks from the BLE TL driver - will be called under Interrupt */
-static void sysevt_received(void *pdata)
+static SHCI_TL_UserEventFlowStatus_t APPE_SysevtReadyProcessing( SHCI_C2_Ready_Evt_t *pReadyEvt )
 {
+  uint8_t fus_state_value;
+  SHCI_TL_UserEventFlowStatus_t return_value;
+
+  //printf("APPE_SysevtReadyProcessing status:%d\n", pReadyEvt->sysevt_ready_rsp);
+  if(pReadyEvt->sysevt_ready_rsp == WIRELESS_FW_RUNNING) {
+    return_value = SHCI_TL_UserEventFlow_Enable;
+  }
+  else {
+    //printf("APPE_SysevtReadyProcessing wireless not running\n");
+
+
+    /**
+     * FUS is running on CPU2
+     */
+    /**
+     * FUS is running on CPU2
+     */
+    return_value = SHCI_TL_UserEventFlow_Disable;
+
+    /**
+     * The CPU2 firmware update procedure is starting from now
+     * There may be several device reset during CPU2 firmware upgrade
+     * The key word at the beginning of SRAM1 shall be changed CFG_REBOOT_ON_CPU2_UPGRADE
+     *
+     * Wireless Firmware upgrade:
+     * Once the upgrade is over, the CPU2 will run the wireless stack
+     * When the wireless stack is running, the SRAM1 is checked and when equal to CFG_REBOOT_ON_CPU2_UPGRADE,
+     * it means we may restart on the firmware application.
+     *
+     * FUS Firmware Upgrade:
+     * Once the upgrade is over, the CPU2 will run FUS and the FUS return the Idle state
+     * The SRAM1 is checked and when equal to CFG_REBOOT_ON_CPU2_UPGRADE,
+     * it means we may restart on the firmware application.
+     */
+    //printf("APPE_SysevtReadyProcessing call SHCI_C2_FUS_GetState\n");
+    fus_state_value = SHCI_C2_FUS_GetState( NULL );
+    //printf("APPE_SysevtReadyProcessing fus_state_value = %d\n", fus_state_value);
+
+    if( fus_state_value == 0xFF)
+    {
+      /**
+       * This is the first time in the life of the product the FUS is involved. After this command, it will be properly initialized
+       * Request the device to reboot to install the wireless firmware
+       */
+      //printf("APPE_SysevtReadyProcessing call NVIC_SystemReset\n");
+      NVIC_SystemReset(); /* it waits until reset */
+    }
+
+    if( fus_state_value != 0)
+    {
+      /**
+       * An upgrade is on going
+       * Wait to reboot on the wireless stack
+       */
+      //printf("APPE_SysevtReadyProcessing upgrading\n");
+      while(1);
+    }
+
+    /**
+     * FUS is idle
+     * Request an upgrade and wait to reboot on the wireless stack
+     * The first two parameters are currently not supported by the FUS
+     */
+    if(CFG_OTA_REBOOT_VAL_MSG == CFG_REBOOT_ON_CPU2_UPGRADE) {
+        /**
+         * The FUS update has been completed
+         * Reboot the CPU2 on the firmware application
+         */
+        //printf("APPE_SysevtReadyProcessing SHCI_C2_FUS_StartWs\n");
+        CFG_OTA_REBOOT_VAL_MSG = CFG_REBOOT_ON_FW_APP;
+        SHCI_C2_FUS_StartWs();
+        while(1);
+    }
+    else {
+        CFG_OTA_REBOOT_VAL_MSG = CFG_REBOOT_ON_CPU2_UPGRADE;
+        /**
+         * Note:
+         * If a reset occurs now, on the next reboot the FUS will be idle and a CPU2 reboot on the
+         * wireless stack will be requested because SRAM1 is set to CFG_REBOOT_ON_CPU2_UPGRADE
+         * The device is still operational but no CPU2 update has been done.
+         */
+        //printf("APPE_SysevtReadyProcessing SHCI_C2_FUS_FwUpgrade\n");
+        SHCI_C2_FUS_FwUpgrade(0,0);
+        while(1);
+    }
+  }
+  return return_value;
+}
+
+/*  WEAK callbacks from the BLE TL driver - will be called under Interrupt */
+void sysevt_received(void *pPayload)
+{
+    TL_AsynchEvt_t *p_sys_event;
+
+
+    p_sys_event = (TL_AsynchEvt_t*)(((tSHCI_UserEvtRxParam*)pPayload)->pckt->evtserial.evt.payload);
+    
+    switch(p_sys_event->subevtcode)
+    {
+        case SHCI_SUB_EVT_CODE_READY:
+        ((tSHCI_UserEvtRxParam*)pPayload)->status = APPE_SysevtReadyProcessing( (SHCI_C2_Ready_Evt_t*)p_sys_event->payload );
+        break;
+
+        default:
+        break;
+    }
     /* For now only READY event is received, so we know this is it */
     sys_event_sem.release();
     /* But later on ... we'll have to parse the answer */

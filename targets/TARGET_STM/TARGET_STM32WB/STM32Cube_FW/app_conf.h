@@ -59,6 +59,20 @@
 #define CFG_FW_BRANCH             (0)
 #define CFG_FW_BUILD              (0)
 
+/**
+ * Define list of reboot reason
+ */
+#define CFG_REBOOT_ON_FW_APP          (0x00)
+#define CFG_REBOOT_ON_BLE_OTA_APP     (0x01)
+#define CFG_REBOOT_ON_CPU2_UPGRADE    (0x02)
+
+
+/**
+ * Define mapping of OTA messages in SRAM
+ */
+#define CFG_OTA_REBOOT_VAL_MSG            (*(uint8_t*)(SRAM1_BASE+0))
+#define CFG_OTA_START_SECTOR_IDX_VAL_MSG  (*(uint8_t*)(SRAM1_BASE+1))
+#define CFG_OTA_NBR_OF_SECTOR_VAL_MSG     (*(uint8_t*)(SRAM1_BASE+2))
 
 /******************************************************************************
  * BLE Stack
