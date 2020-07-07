@@ -26,7 +26,7 @@
 #endif
 
 #if !defined(MBED_RAM_START)
-#define MBED_RAM_START  0x20000000
+#define MBED_RAM_START  0x20000140
 #endif
 
 #if !defined(MBED_RAM_SIZE)
