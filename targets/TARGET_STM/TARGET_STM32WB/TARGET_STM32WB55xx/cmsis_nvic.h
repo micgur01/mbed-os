@@ -26,7 +26,7 @@
 #endif
 
 #if !defined(MBED_RAM_START)
-#define MBED_RAM_START  0x20000140
+#define MBED_RAM_START  0x20000000
 #endif
 
 #if !defined(MBED_RAM_SIZE)
@@ -34,6 +34,7 @@
 #endif
 
 #define NVIC_NUM_VECTORS        79
-#define NVIC_RAM_VECTOR_ADDRESS MBED_RAM_START
+#define MBED_RAM_RESERVED 0x200
+#define NVIC_RAM_VECTOR_ADDRESS (MBED_RAM_START+MBED_RAM_RESERVED)
 
 #endif
