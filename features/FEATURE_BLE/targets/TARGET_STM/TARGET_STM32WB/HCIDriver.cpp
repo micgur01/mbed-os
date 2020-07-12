@@ -86,6 +86,7 @@ static bool get_bd_address(uint8_t *bd_addr);
 static bool sysevt_wait(void);
 static bool sysevt_check(void);
 
+int handle_ready_event = 0;
 
 namespace ble {
 namespace vendor {
@@ -796,10 +797,11 @@ static SHCI_TL_UserEventFlowStatus_t APPE_SysevtReadyProcessing( SHCI_C2_Ready_E
   //printf("APPE_SysevtReadyProcessing status:%d\n", pReadyEvt->sysevt_ready_rsp);
   if(pReadyEvt->sysevt_ready_rsp == WIRELESS_FW_RUNNING) {
     return_value = SHCI_TL_UserEventFlow_Enable;
+    handle_ready_event = 1;
   }
   else {
     //printf("APPE_SysevtReadyProcessing wireless not running\n");
-
+    handle_ready_event = 2;
 
     /**
      * FUS is running on CPU2
@@ -884,6 +886,7 @@ void sysevt_received(void *pPayload)
 {
     TL_AsynchEvt_t *p_sys_event;
 
+    handle_ready_event = -1;
 
     p_sys_event = (TL_AsynchEvt_t*)(((tSHCI_UserEvtRxParam*)pPayload)->pckt->evtserial.evt.payload);
     
