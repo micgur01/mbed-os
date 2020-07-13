@@ -796,8 +796,10 @@ static SHCI_TL_UserEventFlowStatus_t APPE_SysevtReadyProcessing( SHCI_C2_Ready_E
 
   //printf("APPE_SysevtReadyProcessing status:%d\n", pReadyEvt->sysevt_ready_rsp);
   if(pReadyEvt->sysevt_ready_rsp == WIRELESS_FW_RUNNING) {
-    return_value = SHCI_TL_UserEventFlow_Enable;
-    handle_ready_event = 1;
+      handle_ready_event = 1;
+      return_value = SHCI_TL_UserEventFlow_Enable;
+      //fus_state_value = SHCI_C2_FUS_GetState( NULL );
+      //handle_ready_event = 27;
   }
   else {
     //printf("APPE_SysevtReadyProcessing wireless not running\n");
